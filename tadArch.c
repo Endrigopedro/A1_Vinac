@@ -14,6 +14,12 @@ struct directory *create_directory(){
 
 int add_arch(struct directory *dir, struct archive *arch){
 
+   for (size_t i = 0; i < dir->size; ++i) {
+      if (strcmp(dir->arch[i].name, arch->name) == 0) {
+         dir->arch[i] = *arch;
+      }
+   }
+
    if (dir->size >= dir->capacity) {
       int new_capacity = dir->capacity * 2;
       struct archive *new_arch = realloc(dir->arch, sizeof(struct archive) * new_capacity);

@@ -7,6 +7,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lz/lz.h"
 
 // Representa um arquivo no archive
 struct archive {
@@ -22,7 +23,6 @@ struct archive {
 struct directory {
    struct archive *arch;  // vetor de arquivos
    size_t size;           // quantos arquivos inseridos
-   size_t capacity;       // capacidade atual do vetor
 };
 
 // Cria e inicializa uma estrutura de diretório vazia
