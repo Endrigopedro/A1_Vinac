@@ -1,44 +1,15 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/stat.h>
+#include "utils.h"
 
-void rearrange(off_t st_size){
+size_t buffer_size(struct directory *dir){
 
-   FILE *arch = fopen("name.txt", "a+");
+   size_t buffer = 0;
 
+   for(int i = 0; i < dir->size; i++){
+      if (dir->arch[i].discSize > buffer)
+         buffer = dir->arch[i].discSize;
+   }
+
+   return buffer;
 }
 
-int main(){
 
-   FILE *arch = fopen("teste.txt", "r+b");
-
-   int pos;
-   scanf("digite a posição que vc quer inserir: %d", &pos);
-
-   struct stat st;
-   stat("teste.txt", &st);
-
-   fseek(arch, 0, SEEK_END);
-
-   long tam = ftell(arch);
-
-   long tam_fim = tam - pos;
-   char buffer[tam_fim];
-
-   fseek(arch, pos, SEEK_SET);
-
-   fread(buffer, sizeof(char), tam_fim, arch);
-
-   fseek(arch, 0, SEEK_END);
-
-   fwrite(buffer, sizeof(char), tam_fim, arch);
-
-   fseek(arch, pos, SEEK_SET);
-
-   //buffer recebe o conteudo que eu quero escrever
-   //escrevo o conteudo
-   //a partir da posição leio o q esta no final e escrevo dps do que eu ja tinha escrito
-
-
-
-}

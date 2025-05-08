@@ -1,6 +1,17 @@
-#ifndef UTIL
-#define UTIL
+#ifndef __UTILS_H__
+#define __UTILS_H__
 
-void rearrange(FILE *arch, )
+#include <unistd.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+#include <string.h>
+#include "tadArch.h"
+#include "archive.h"
 
-#endif // !DEBUG
+size_t buffer_size(struct directory *dir);
+
+
+#endif 
+

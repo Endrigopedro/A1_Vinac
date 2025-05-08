@@ -2,17 +2,36 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "tadArch.h"
-#include "ultils.h"
+#include "utils.h"
+#include "archive.h"
 
 int main(int argc, char **argv){
 
    char opt;
-   while ((opt = getopt(argc, argv, "p:c:m:x::r:C")) != -1) {
+   struct archive *arch = malloc(sizeof(struct archive));
+   while ((opt = getopt(argc, argv, "p:i:m:x::r:c")) != -1) {
       switch (opt) {
          case 'p':
             printf("Inserção sem compressãso foi selecionado\n");
+            FILE *fp = fopen(argv[2], "r+b");
+            if(!fp) {
+               fp = fopen(argv[2], "wb+");
+               struct directory *dir = create_directory();
+            }
+            else {
+               struct directory *dir = read_directory(fp);
+            }
+            for(int i = 0; i < argc; i++){
+               arch = create_arch(argv[i+3], i);
+               add_arch(dir, arch);
+            }
+            write_directory(fp, dir);
+            calc_offset(dir);
+            sizet_t buffer = buffer_size(dir);
+            insert_arch(fp, dir, buffer);
+
             break;
-         case 'c':
+         case 'i':
             printf("Inserção com compressãso foi selecionado\n");
             break;
          case 'm':
@@ -24,7 +43,7 @@ int main(int argc, char **argv){
          case 'r':
             printf("Remoção dos seguintes membros\n"); //colocar os outros mebmros quando eu descobrir como
             break;
-         case 'C':
+         case 'c':
             printf("Archive possui os seguintes conteúdos\n"); // same de cima
             break;
          default:

@@ -3,24 +3,54 @@
 
 #include <unistd.h>
 #include <sys/stat.h>
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+#include <string.h>
 
-struct arch {
-   char name[181]; //pergunrar pros prof o limite do nome
-   uid_t udi;
-   off_t ogSize;
-   blkcnt_t discSize;
-   struct timespec lastMod;
-
+// Representa um arquivo no archive
+struct archive {
+   char name[1024];
+   int udi;
+   off_t ogSize;              // tamanho original
+   off_t discSize;            // tamanho no disco
+   struct timespec lastMod;   // última modificação
+   size_t offset;             // deslocamento no arquivo .vc
 };
 
-struct arch *insert_arch();
+// Diretório que agrupa os arquivos no archive
+struct directory {
+   struct archive *arch;  // vetor de arquivos
+   size_t size;           // quantos arquivos inseridos
+   size_t capacity;       // capacidade atual do vetor
+};
 
-struct arch *remove_arch();
+// Cria e inicializa uma estrutura de diretório vazia
+struct directory *create_directory();
 
-void move_arch();
+// Lê o diretório de arquivos de um arquivo .vc
+struct directory *read_directory(FILE *fp);
 
-void extract_arch();
+// Cria e preenche os metadados de um novo arquivo
+struct archive *create_arch(char *name, int udi);
 
-void print_arch();
+// Adiciona um novo arquivo ao diretório
+int add_arch(struct directory *dir, struct archive *arch);
 
-#endif
+// Libera memória de um diretório
+void destroy_directory(struct directory *dir);
+
+// Calcula os offsets de cada arquivo dentro do .vc
+void calc_offset(struct directory *dir);
+
+// Retorna o maior tamanho de arquivo (útil para alocar buffer)
+size_t buffer_size(struct directory *dir);
+
+// Insere os dados dos arquivos no arquivo .vc
+void insert_arch(FILE *fp, struct directory *dir, size_t buffer);
+
+// Escreve os metadados no final do arquivo .vc
+void write_directory(FILE *fp, struct directory *dir);
+
+#endif // __TADARCH__
+
