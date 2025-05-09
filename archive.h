@@ -9,10 +9,20 @@
 #include <string.h>
 #include "tadArch.h"
 
-void insert_arch(FILE *fp, struct directory *dir, size_t buffer);
+void insert_arch(FILE *fp, struct directory *dir, unsigned long buffer);
 
 void write_directory(FILE *fp, struct directory *dir);
 
 struct directory *read_directory(FILE *fp);
+
+void remove_arch(char *argv, struct directory *dir);
+
+void print_directory(struct directory *dir);
+
+void extract_directory(struct directory *dir, FILE *fp);
+
+void extrect_member(struct directory *dir, FILE *fp, unsigned char *name);
+
+void move_member(struct directory *dir, FILE *fp, unsigned char *name);
 
 #endif

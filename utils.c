@@ -1,8 +1,8 @@
 #include "utils.h"
 
-size_t buffer_size(struct directory *dir){
+unsigned long buffer_size(struct directory *dir){
 
-   size_t buffer = 0;
+   unsigned long buffer = 0;
 
    for(int i = 0; i < dir->size; i++){
       if (dir->arch[i].discSize > buffer)
@@ -13,3 +13,55 @@ size_t buffer_size(struct directory *dir){
 }
 
 
+int move_data(FILE *fp, size_t from_offset, size_t to_offset, size_t size, char *buffer) {
+   if (size == 0 || from_offset == to_offset) return 0;
+
+   if (!buffer) {
+      fprintf(stderr, "Erro: buffer inválido.\n");
+      return -1;
+   }
+
+   // Caso 1: mover para frente (precisa ler de trás para frente)
+   if (to_offset > from_offset) {
+      ssize_t remaining = size;
+      while (remaining > 0) {
+         size_t chunk;
+         if (remaining > size) {
+            chunk = size;  // Se o restante for maior que o tamanho do arquivo, usa o tamanho do arquivo
+         } else {
+            chunk = remaining;  // Caso contrário, usa o restante
+         }
+         remaining -= chunk;
+
+         // Mover dados de trás para frente
+         fseek(fp, from_offset + remaining, SEEK_SET);
+         fread(buffer, 1, chunk, fp);
+
+         fseek(fp, to_offset + remaining, SEEK_SET);
+         fwrite(buffer, 1, chunk, fp);
+      }
+   }
+
+   // Caso 2: mover para trás (pode ler normalmente)
+   else {
+      size_t processed = 0;
+      while (processed < size) {
+         size_t chunk;
+         if (size - processed > size) {
+            chunk = size;  // Se o restante for maior que o tamanho do arquivo, usa o tamanho do arquivo
+         } else {
+            chunk = size - processed;  // Caso contrário, usa o restante
+         }
+
+         fseek(fp, from_offset + processed, SEEK_SET);
+         fread(buffer, 1, chunk, fp);
+
+         fseek(fp, to_offset + processed, SEEK_SET);
+         fwrite(buffer, 1, chunk, fp);
+
+         processed += chunk;
+      }
+   }
+
+   return 0;
+}

@@ -9,20 +9,22 @@
 #include <string.h>
 #include "lz/lz.h"
 
+
 // Representa um arquivo no archive
 struct archive {
-   char name[1024];
+   unsigned char name[1024];
    int udi;
    off_t ogSize;              // tamanho original
    off_t discSize;            // tamanho no disco
    struct timespec lastMod;   // última modificação
-   size_t offset;             // deslocamento no arquivo .vc
+   unsigned long offset; 
+   int isCompress;
 };
 
 // Diretório que agrupa os arquivos no archive
 struct directory {
    struct archive *arch;  // vetor de arquivos
-   size_t size;           // quantos arquivos inseridos
+   unsigned long size;  // quantos arquivos inseridos
 };
 
 // Cria e inicializa uma estrutura de diretório vazia
@@ -44,13 +46,16 @@ void destroy_directory(struct directory *dir);
 void calc_offset(struct directory *dir);
 
 // Retorna o maior tamanho de arquivo (útil para alocar buffer)
-size_t buffer_size(struct directory *dir);
+unsigned long buffer_size(struct directory *dir);
 
 // Insere os dados dos arquivos no arquivo .vc
-void insert_arch(FILE *fp, struct directory *dir, size_t buffer);
+void insert_arch(FILE *fp, struct directory *dir, unsigned long buffer);
 
 // Escreve os metadados no final do arquivo .vc
 void write_directory(FILE *fp, struct directory *dir);
+
+void print_directory(struct directory *dir);
+
 
 #endif // __TADARCH__
 

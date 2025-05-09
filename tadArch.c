@@ -3,10 +3,9 @@
 struct directory *create_directory(){
    struct directory *dir = malloc(sizeof(struct directory));
 
-   dir->arch = malloc(sizeof(struct archive)*2);
+   dir->arch = malloc(sizeof(struct archive)*1);
 
    dir->size = 0;
-   dir->capacity = 2;
 
    return dir;
 }
@@ -20,15 +19,14 @@ int add_arch(struct directory *dir, struct archive *arch){
       }
    }
 
-   if (dir->size >= dir->capacity) {
-      int new_capacity = dir->capacity * 2;
-      struct archive *new_arch = realloc(dir->arch, sizeof(struct archive) * new_capacity);
-      if (!new_arch) 
-         return -1;
-      dir->arch = new_arch;
-      dir->capacity = new_capacity;
-   }
-   dir->arch[dir->size++] = *arch;
+   int new_capacity = dir->size + 1;
+   struct archive *new_arch = realloc(dir->arch, sizeof(struct archive) * new_capacity);
+   if (!new_arch) 
+      return -1;
+   dir->arch = new_arch;
+   dir->size = new_capacity;
+
+   dir->arch[dir->size] = *arch;
    return 0;
 
 }
@@ -46,6 +44,7 @@ struct archive *create_arch(char *name, int i){
    arch->ogSize = st.st_size;
    arch->udi = i;
    arch->lastMod = st.st_mtim;
+   arch->isCompress = 0;
    strncpy(arch->name, name, sizeof(arch->name)); 
 
    return arch;
