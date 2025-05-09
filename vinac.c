@@ -37,7 +37,7 @@ int main(int argc, char **argv){
          case 'm':
             printf("Movimentando membro %s para [nova posição]\n", optarg);
             if(argv[4] == "NULL"){               
-               move_member(dir, fp, argv[3]);
+               move_member(dir, fp, argv[3], (sizeof(struct directory)*dir->size));
             }else{
             }
 

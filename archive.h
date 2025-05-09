@@ -23,6 +23,6 @@ void extract_directory(struct directory *dir, FILE *fp);
 
 void extrect_member(struct directory *dir, FILE *fp, unsigned char *name);
 
-void move_member(struct directory *dir, FILE *fp, unsigned char *name);
+void move_member(struct directory *dir, FILE *fp, int from_index, int to_index, unsigned char *buffer);
 
 #endif

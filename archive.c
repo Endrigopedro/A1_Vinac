@@ -1,5 +1,6 @@
 #include "archive.h"
 #include "tadArch.h"
+#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -141,9 +142,26 @@ void extrect_member(struct directory *dir, FILE *fp, unsigned char *name){
    }
 }
 
-void move_member(struct directory *dir, FILE *fp, unsigned char *name){
+void move_member(struct directory *dir, FILE *fp, int from_index, int to_index, unsigned char *buffer){
 
-
+   if(from_index > to_index){
+      for(int i = to_index + 1; i < dir->size; i--){
+         if(i != to_index){
+            fseek(fp, 0, SEEK_END);
+            unsigned long end = ftell(fp);
+            move_data(fp, dir->arch[i].offset, end, dir->arch[i].discSize, buffer);
+         }
+      }
+      move_data(fp, dir->arch[to_index].offset, dir->arch[from_index].offset + dir->arch[from_index].discSize, dir->arch[to_index].discSize, buffer);
+      update_index(dir, from_index, to_index);
+      calc_offset(dir);
+      for(int i = to_index + 2; i < dir->size; i++){
+         fseek(fp, dir->arch[to_index].offset + dir->arch[from_index].discSize, SEEK_SET);
+         unsigned long place = ftell(fp);
+         move_data(fp, dir->arch[i].offset, end, dir->arch[i].discSize, buffer);
+      }
+   }
 }
+
 
 
