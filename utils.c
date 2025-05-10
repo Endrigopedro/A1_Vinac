@@ -15,7 +15,7 @@ unsigned long buffer_size(struct directory *dir){
 }
 
 
-int move_data(FILE *fp, size_t from_offset, size_t to_offset, size_t size, char *buffer) {
+int move_data(FILE *fp, size_t from_offset, size_t to_offset, size_t size, unsigned char *buffer) {
    if (size == 0 || from_offset == to_offset) return 0;
 
    if (!buffer) {

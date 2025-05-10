@@ -14,7 +14,7 @@
 struct archive {
    unsigned char name[1024];
    int udi;
-   off_t ogSize;              // tamanho original
+   off_t oldSize;              // tamanho original
    off_t discSize;            // tamanho no disco
    struct timespec lastMod;   // última modificação
    unsigned long offset; 

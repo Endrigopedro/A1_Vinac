@@ -25,13 +25,44 @@ int main(int argc, char **argv){
             }
             for(int i = dir->size; i < argc + dir->size; i++){
                arch = create_arch(argv[i+3], i);
-               add_arch(dir, arch);
-               buffer = buffer_size(dir);
-               insert_arch(fp, dir, buffer);
+               int j = add_arch(dir, arch);
+               calc_offset(dir);
+               if(j == -1){
+                  buffer = buffer_size(dir);
+                  insert_member(fp, dir, buffer);
+               }else {
+                  buffer = buffer_size(dir);
+                  same_member(fp, dir, arch, i, buffer);
+               }
             }
+            calc_offset(dir);
+            write_directory(fp, dir);
             break;
 
          case 'i':
+            if(!fp) {
+               fp = fopen(argv[2], "wb+");
+               *dir = (struct directory)*create_directory();
+            }
+            else {
+               *dir = (struct directory)*read_directory(fp);
+            }
+            for(int i = dir->size; i < argc + dir->size; i++){
+               arch = create_arch(argv[i+3], i);
+               int j = add_arch(dir, arch);
+               calc_offset(dir);
+               if(j == -1){
+                  buffer = buffer_size(dir);
+                  compress_member(dir, buffer);
+                  insert_member(fp, dir, buffer);
+               }else {
+                  buffer = buffer_size(dir); 
+                  compress_member(dir, buffer);
+                  same_member(fp, dir, arch, i, buffer);
+               }
+            }
+            calc_offset(dir);
+            write_directory(fp, dir);
             break;
 
          case 'm':
@@ -66,7 +97,7 @@ int main(int argc, char **argv){
 
          case 'x':
             printf("Extração dos seguintes membros\n");
-            if(argc = 3)
+            if(argc == 3)
                for(int i = 0; i < dir->size; i++)
                   extract_directory(dir, fp, i);
             else{
@@ -83,7 +114,7 @@ int main(int argc, char **argv){
             buffer = malloc(size);
             for (size_t i = 0; i < dir->size; ++i) 
                if (strcmp(dir->arch[i].name, argv[i + 3]) == 0)
-                 remove_member(i, dir, p, unsigned char *buffer);
+                  remove_member(i, dir, fp, buffer);
 
             break;
 

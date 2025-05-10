@@ -15,7 +15,7 @@ int add_arch(struct directory *dir, struct archive *arch){
 
    for (size_t i = 0; i < dir->size; ++i) {
       if (strcmp(dir->arch[i].name, arch->name) == 0) {
-         dir->arch[i] = *arch;
+         return i;
       }
    }
 
@@ -27,7 +27,7 @@ int add_arch(struct directory *dir, struct archive *arch){
    dir->size = new_capacity;
 
    dir->arch[dir->size] = *arch;
-   return 0;
+   return -1;
 
 }
 
@@ -41,7 +41,7 @@ struct archive *create_arch(char *name, int i){
    stat(name, &st);
 
    arch->discSize = st.st_size;
-   arch->ogSize = st.st_size;
+   arch->oldSize = st.st_size;
    arch->udi = i;
    arch->lastMod = st.st_mtim;
    arch->isCompress = 0;
