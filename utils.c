@@ -1,5 +1,6 @@
 #include "utils.h"
 #include "tadArch.h"
+#include <stdlib.h>
 
 unsigned long buffer_size(struct directory *dir){
 
@@ -68,21 +69,28 @@ int move_data(FILE *fp, size_t from_offset, size_t to_offset, size_t size, char 
 }
 
 void update_index(struct directory *dir, int from, int to) {
-   if (from == to || from >= dir->size || to >= dir->size) return;
+   if (from >= dir->size) return;
 
-   struct archive temp = dir->arch[from];
-
-   if (from < to) {
-      for (int i = from; i < to; i++) {
+   if (to >= dir->size || to < 0) {
+      for (int i = from; i < dir->size - 1; i++) {
          dir->arch[i] = dir->arch[i + 1];
       }
-   } else {
-      for (int i = from; i > to; i--) {
-         dir->arch[i] = dir->arch[i - 1];
-      }
-   }
+      dir->size--;  
+   } else if (from != to) {
+      struct archive temp = dir->arch[from];
 
-   dir->arch[to] = temp;
+      if (from < to) {
+         for (int i = from; i < to; i++) {
+            dir->arch[i] = dir->arch[i + 1];
+         }
+      } else {
+         for (int i = from; i > to; i--) {
+            dir->arch[i] = dir->arch[i - 1];
+         }
+      }
+
+      dir->arch[to] = temp;
+   }
 
    for (int i = 0; i < dir->size; i++) {
       dir->arch[i].udi = i;

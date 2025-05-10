@@ -15,14 +15,12 @@ void write_directory(FILE *fp, struct directory *dir);
 
 struct directory *read_directory(FILE *fp);
 
-void remove_arch(char *argv, struct directory *dir);
-
 void print_directory(struct directory *dir);
 
-void extract_directory(struct directory *dir, FILE *fp);
-
-void extrect_member(struct directory *dir, FILE *fp, unsigned char *name);
+void extract_directory(struct directory *dir, FILE *fp, int i);
 
 void move_member(struct directory *dir, FILE *fp, int from_index, int to_index, unsigned char *buffer);
+
+void remove_member(int index, struct directory *dir, FILE *fp, unsigned char *buffer);
 
 #endif

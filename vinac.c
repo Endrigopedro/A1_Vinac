@@ -26,34 +26,67 @@ int main(int argc, char **argv){
             for(int i = dir->size; i < argc + dir->size; i++){
                arch = create_arch(argv[i+3], i);
                add_arch(dir, arch);
+               buffer = buffer_size(dir);
+               insert_arch(fp, dir, buffer);
             }
-            calc_offset(dir);
-            buffer = buffer_size(dir);
-            insert_arch(fp, dir, buffer);
-            write_directory(fp, dir);
             break;
+
          case 'i':
             break;
+
          case 'm':
             printf("Movimentando membro %s para [nova posição]\n", optarg);
-            if(argv[4] == "NULL"){               
-               move_member(dir, fp, argv[3], (sizeof(struct directory)*dir->size));
-            }else{
+
+            int from_index = -1, to_index = -1;
+
+            for (size_t i = 0; i < dir->size; ++i) {
+               if (strcmp(dir->arch[i].name, argv[3]) == 0)
+                  from_index = i;
+
+               if (argc > 4 && strcmp(argv[4], "NULL") != 0 && strcmp(dir->arch[i].name, argv[4]) == 0)
+                  to_index = i;
             }
 
+            if (from_index == -1) {
+               fprintf(stderr, "Erro: membro %s não encontrado\n", argv[3]);
+               break;
+            }
+
+            if (to_index == -1) {
+               fprintf(stderr, "Erro: destino %s não encontrado\n", argv[4]);
+               break;
+            }
+
+            size_t size = buffer_size(dir);
+            unsigned char *buffer = malloc(size);
+            move_member(dir, fp, from_index, to_index, buffer);
+            free(buffer);
+
             break;
+
          case 'x':
             printf("Extração dos seguintes membros\n");
             if(argc = 3)
-               extract_directory(dir, fp);
+               for(int i = 0; i < dir->size; i++)
+                  extract_directory(dir, fp, i);
             else{
                for(int i = 0; i < argc + dir->size; i++)
-                  extrect_member(dir, fp, argv[i+3]);
+                  if(strcmp(argv[i+3], dir->arch[i].name) == 0)
+                     extract_directory(dir, fp, i);
             }
             break;
+
          case 'r':
-            printf("Remoção dos seguintes membros\n"); //colocar os outros mebmros quando eu descobrir como
+            printf("Remoção dos seguintes membros\n");
+            read_directory(fp);
+            size = buffer_size(dir);
+            buffer = malloc(size);
+            for (size_t i = 0; i < dir->size; ++i) 
+               if (strcmp(dir->arch[i].name, argv[i + 3]) == 0)
+                 remove_member(i, dir, p, unsigned char *buffer);
+
             break;
+
          case 'c':
             printf("Archive possui os seguintes conteúdos\n");
             if(fp){   
@@ -64,6 +97,7 @@ int main(int argc, char **argv){
             }
 
             break;
+
          default:
             perror("%Argumentos: -a [Valor Op.] -b [Valor Ob.]\n"); //pensar numa mensagem legal de erro
             return 1;
