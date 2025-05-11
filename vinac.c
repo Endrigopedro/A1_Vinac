@@ -1,30 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 #include "tadArch.h"
-#include "utils.h"
-#include "archive.h"
+#include "archive.h" 
 
 int main(int argc, char **argv){
 
    char opt;
-   struct archive *arch = malloc(sizeof(struct archive));
-   struct directory *dir;
+   struct directory *dir = NULL;
    FILE *fp = fopen(argv[2], "r+b");
    unsigned long buffer;
+   unsigned char *buf;
    while ((opt = getopt(argc, argv, "p:i:m:x::r:c")) != -1) {
       switch (opt) {
          case 'p':
             printf("Inserção sem compressãso foi selecionado\n");
             if(!fp) {
-               fp = fopen(argv[2], "wb+");
-               *dir = (struct directory)*create_directory();
+               fp = fopen(argv[optind - 1], "wb+");
+               dir = create_directory();
             }
             else {
-               *dir = (struct directory)*read_directory(fp);
+               dir = read_directory(fp);
             }
-            for(int i = dir->size; i < argc + dir->size; i++){
-               arch = create_arch(argv[i+3], i);
+            for(int i = optind; i < argc; i++){
+               struct archive *arch = create_arch(argv[i], dir->size); 
                int j = add_arch(dir, arch);
                calc_offset(dir);
                if(j == -1){
@@ -32,7 +32,7 @@ int main(int argc, char **argv){
                   insert_member(fp, dir, buffer);
                }else {
                   buffer = buffer_size(dir);
-                  same_member(fp, dir, arch, i, buffer);
+                  same_member(fp, dir, arch, j, buffer);
                }
             }
             calc_offset(dir);
@@ -40,15 +40,16 @@ int main(int argc, char **argv){
             break;
 
          case 'i':
+            printf("Inserção com compressãso foi selecionado\n");
             if(!fp) {
-               fp = fopen(argv[2], "wb+");
-               *dir = (struct directory)*create_directory();
+               fp = fopen(argv[optind - 1], "wb+");
+               dir = create_directory();
             }
             else {
-               *dir = (struct directory)*read_directory(fp);
+               dir = read_directory(fp);
             }
-            for(int i = dir->size; i < argc + dir->size; i++){
-               arch = create_arch(argv[i+3], i);
+            for(int i = optind; i < argc; i++){
+               struct archive *arch = create_arch(argv[i], dir->size); 
                int j = add_arch(dir, arch);
                calc_offset(dir);
                if(j == -1){
@@ -56,9 +57,9 @@ int main(int argc, char **argv){
                   compress_member(dir, buffer);
                   insert_member(fp, dir, buffer);
                }else {
-                  buffer = buffer_size(dir); 
+                  buffer = buffer_size(dir);
                   compress_member(dir, buffer);
-                  same_member(fp, dir, arch, i, buffer);
+                  same_member(fp, dir, arch, j, buffer);
                }
             }
             calc_offset(dir);
@@ -66,15 +67,30 @@ int main(int argc, char **argv){
             break;
 
          case 'm':
-            printf("Movimentando membro %s para [nova posição]\n", optarg);
+            printf("Movimentando membro %s para nova posição\n", optarg);
+
+
+            if (!fp) {
+               fprintf(stderr, "Arquivo não encontrado.\n");
+               break;
+            }
+
+            dir = read_directory(fp);
+
+            if (optind + 1 >= argc) {
+               fprintf(stderr, "Uso: -m <membro> <destino>\n");
+               break;
+            }
+
 
             int from_index = -1, to_index = -1;
 
+
             for (size_t i = 0; i < dir->size; ++i) {
-               if (strcmp(dir->arch[i].name, argv[3]) == 0)
+               if (strncmp((char *)dir->arch[i].name, argv[optind], 1024) == 0)
                   from_index = i;
 
-               if (argc > 4 && strcmp(argv[4], "NULL") != 0 && strcmp(dir->arch[i].name, argv[4]) == 0)
+               if (argc > 4 && strcmp(argv[optind], "NULL") != 0 && strncmp((char *)dir->arch[i].name, argv[optind], 1024) == 0)
                   to_index = i;
             }
 
@@ -88,35 +104,48 @@ int main(int argc, char **argv){
                break;
             }
 
-            size_t size = buffer_size(dir);
-            unsigned char *buffer = malloc(size);
-            move_member(dir, fp, from_index, to_index, buffer);
-            free(buffer);
+            buffer = buffer_size(dir);
+            buf = malloc(buffer);
+            move_member(dir, fp, from_index, to_index, buf);
+            free(buf);
 
             break;
 
          case 'x':
-            printf("Extração dos seguintes membros\n");
-            if(argc == 3)
-               for(int i = 0; i < dir->size; i++)
+            printf("Extração\n");
+            dir = read_directory(fp);
+            if(argc == optind)
+               for(long unsigned int i = 0; i < dir->size; i++){
                   extract_directory(dir, fp, i);
+               }
             else{
-               for(int i = 0; i < argc + dir->size; i++)
-                  if(strcmp(argv[i+3], dir->arch[i].name) == 0)
-                     extract_directory(dir, fp, i);
+               printf("Extração dos seguintes membros\n");
+               for (int i = optind; i < argc; i++) {
+                  for (long unsigned int j = 0; j < dir->size; j++) {
+
+                     if (strncmp(argv[i],(char *)dir->arch[j].name, 1024) == 0){
+                        printf("- %s\n", dir->arch[j].name);
+                        extract_directory(dir, fp, j);
+                     }
+                  }
+               }
             }
             break;
-
          case 'r':
             printf("Remoção dos seguintes membros\n");
-            read_directory(fp);
-            size = buffer_size(dir);
-            buffer = malloc(size);
-            for (size_t i = 0; i < dir->size; ++i) 
-               if (strcmp(dir->arch[i].name, argv[i + 3]) == 0)
-                  remove_member(i, dir, fp, buffer);
-
-            break;
+            dir = read_directory(fp);
+            buffer = buffer_size(dir);
+            buf = malloc(buffer);
+            for (int i = optind; i < argc; i++) {
+               for (long unsigned int j = 0; j < dir->size; j++) {
+                  if (strncmp(argv[i],(char *)dir->arch[j].name, 1024) == 0) {
+                     remove_member(j, dir, fp, buf);
+                     break;
+                  }
+               }
+            }
+            free(buf);
+            break; 
 
          case 'c':
             printf("Archive possui os seguintes conteúdos\n");
@@ -134,5 +163,12 @@ int main(int argc, char **argv){
             return 1;
       }
    }
+   if (fp) 
+      fclose(fp);
+   if (dir)
+      destroy_directory(dir);
+
+   fclose(fp);
+
    return 0;
 }

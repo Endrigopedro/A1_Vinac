@@ -1,18 +1,14 @@
-
 # Nome do executável
 TARGET = vinac
 
-# Diretório de build (opcional)
-BUILD_DIR = build
-
 # Compilador e flags
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -O2
+CFLAGS = -Wall -Wextra -std=gnu99 -O3  # Ajuste para otimização no nível 3
 LDFLAGS =
 
 # Fontes e cabeçalhos
-SRC = vinac.c tadArch.c archive.c utils.c lz.c
-OBJ = $(SRC:.c=.o)
+SRC = vinac.c tadArch.c archive.c lz/lz.c
+OBJ = $(SRC:%.c=%.o)
 
 # Regra principal
 all: $(TARGET)
@@ -21,7 +17,7 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) $(LDFLAGS)
 
-# Regras para objetos individuais (opcional com dependência de headers)
+# Regras para compilar arquivos .c em .o
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -35,3 +31,4 @@ run: $(TARGET)
 
 # Força recompilação total
 rebuild: clean all
+
