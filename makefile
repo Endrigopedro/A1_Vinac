@@ -3,7 +3,7 @@ TARGET = vinac
 
 # Compilador e flags
 CC = gcc
-CFLAGS = -Wall -Wextra -std=gnu99 -O3  # Ajuste para otimização no nível 3
+CFLAGS = -Wall -Wextra -fsanitize=address
 LDFLAGS =
 
 # Fontes e cabeçalhos

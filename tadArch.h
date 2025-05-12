@@ -17,7 +17,7 @@ struct archive {
    int udi;
    off_t oldSize;              // tamanho original
    off_t discSize;            // tamanho no disco
-   struct timespec lastMod;   // última modificação
+   time_t lastMod;            // última modificação
    unsigned long offset; 
    int isCompress;
 };

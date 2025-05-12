@@ -12,12 +12,17 @@ int main(int argc, char **argv){
    FILE *fp = fopen(argv[2], "r+b");
    unsigned long buffer;
    unsigned char *buf;
+   int has_members;
    while ((opt = getopt(argc, argv, "p:i:m:x::r:c")) != -1) {
       switch (opt) {
          case 'p':
             printf("Inserção sem compressãso foi selecionado\n");
             if(!fp) {
                fp = fopen(argv[optind - 1], "wb+");
+               if (!fp) {
+                  perror("Erro ao abrir o arquivo");
+                  exit(1);
+               }
                dir = create_directory();
             }
             else {
@@ -34,6 +39,7 @@ int main(int argc, char **argv){
                   buffer = buffer_size(dir);
                   same_member(fp, dir, arch, j, buffer);
                }
+               free(arch);
             }
             calc_offset(dir);
             write_directory(fp, dir);
@@ -43,6 +49,10 @@ int main(int argc, char **argv){
             printf("Inserção com compressãso foi selecionado\n");
             if(!fp) {
                fp = fopen(argv[optind - 1], "wb+");
+               if (!fp) {
+                  perror("Erro ao abrir o arquivo");
+                  exit(1);
+               }
                dir = create_directory();
             }
             else {
@@ -51,7 +61,6 @@ int main(int argc, char **argv){
             for(int i = optind; i < argc; i++){
                struct archive *arch = create_arch(argv[i], dir->size); 
                int j = add_arch(dir, arch);
-               calc_offset(dir);
                if(j == -1){
                   buffer = buffer_size(dir);
                   compress_member(dir, buffer);
@@ -61,6 +70,7 @@ int main(int argc, char **argv){
                   compress_member(dir, buffer);
                   same_member(fp, dir, arch, j, buffer);
                }
+               free(arch);
             }
             calc_offset(dir);
             write_directory(fp, dir);
@@ -77,13 +87,13 @@ int main(int argc, char **argv){
 
             dir = read_directory(fp);
 
-            if (optind + 1 >= argc) {
+            if (optind >= argc) {
                fprintf(stderr, "Uso: -m <membro> <destino>\n");
                break;
             }
 
 
-            int from_index = -1, to_index = -1;
+            int from_index = -1, to_index = 0;
 
 
             for (size_t i = 0; i < dir->size; ++i) {
@@ -99,31 +109,31 @@ int main(int argc, char **argv){
                break;
             }
 
-            if (to_index == -1) {
-               fprintf(stderr, "Erro: destino %s não encontrado\n", argv[4]);
-               break;
-            }
-
             buffer = buffer_size(dir);
             buf = malloc(buffer);
             move_member(dir, fp, from_index, to_index, buf);
             free(buf);
 
-            break;
-
+            break; 
          case 'x':
-            printf("Extração\n");
+            if(optind < argc - 1)
+               has_members = 1;
+            else
+               has_members = 0;
+
             dir = read_directory(fp);
-            if(argc == optind)
-               for(long unsigned int i = 0; i < dir->size; i++){
+            calc_offset(dir);
+
+            if (!has_members) {
+               printf("Extração\n");
+               for (unsigned long i = 0; i < dir->size; i++) {
                   extract_directory(dir, fp, i);
                }
-            else{
+            } else {
                printf("Extração dos seguintes membros\n");
                for (int i = optind; i < argc; i++) {
-                  for (long unsigned int j = 0; j < dir->size; j++) {
-
-                     if (strncmp(argv[i],(char *)dir->arch[j].name, 1024) == 0){
+                  for (unsigned long j = 0; j < dir->size; j++) {
+                     if (strncmp(argv[i], (char *)dir->arch[j].name, 1024) == 0) {
                         printf("- %s\n", dir->arch[j].name);
                         extract_directory(dir, fp, j);
                      }
@@ -139,6 +149,7 @@ int main(int argc, char **argv){
             for (int i = optind; i < argc; i++) {
                for (long unsigned int j = 0; j < dir->size; j++) {
                   if (strncmp(argv[i],(char *)dir->arch[j].name, 1024) == 0) {
+                     printf("%s\n", dir->arch[j].name);
                      remove_member(j, dir, fp, buf);
                      break;
                   }
@@ -167,8 +178,6 @@ int main(int argc, char **argv){
       fclose(fp);
    if (dir)
       destroy_directory(dir);
-
-   fclose(fp);
 
    return 0;
 }

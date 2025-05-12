@@ -7,14 +7,8 @@ struct directory *create_directory(){
       return NULL;
    }
 
-   dir->arch = malloc(sizeof(struct archive) * 1);
-   if (!dir->arch) {
-      perror("Erro ao alocar dir->arch");
-      free(dir);
-      return NULL;
-   }
-
-   dir->size = 1;
+   dir->arch = NULL;
+   dir->size = 0;
    return dir;
 }
 
@@ -26,16 +20,15 @@ int add_arch(struct directory *dir, struct archive *arch){
       }
    }
 
-   int new_capacity = dir->size + 2;
-   struct archive *new_arch = realloc(dir->arch, sizeof(struct archive) * new_capacity);
+   int new_size = dir->size + 1;
+   struct archive *new_arch = realloc(dir->arch, sizeof(struct archive) * new_size);
    if (!new_arch) {
       perror("Erro ao alocar arch");
       return -2;
    }
    dir->arch = new_arch;
-   dir->size = new_capacity;
-
-   dir->arch[dir->size - 1] = *arch;
+   dir->arch[dir->size] = *arch; // novo elemento na posição atual
+   dir->size = new_size; 
    return -1;
 
 }
@@ -60,7 +53,7 @@ struct archive *create_arch(char *name, int i){
    arch->discSize = st.st_size;
    arch->oldSize = st.st_size;
    arch->udi = i;
-   arch->lastMod = st.st_mtim;
+   arch->lastMod = st.st_mtime;
    arch->isCompress = 0;
    strncpy((char *)arch->name, name, sizeof(arch->name) - 1);
    arch->name[sizeof(arch->name) - 1] = '\0';
