@@ -3,8 +3,7 @@ TARGET = vinac
 
 # Compilador e flags
 CC = gcc
-CFLAGS = -Wall -Wextra -fsanitize=address
-LDFLAGS =
+CFLAGS = -g -Wall -Wextra -fsanitize=address
 
 # Fontes e cabeçalhos
 SRC = vinac.c tadArch.c archive.c lz/lz.c

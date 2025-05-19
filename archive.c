@@ -11,11 +11,10 @@ void insert_member(FILE *fp, struct directory *dir, unsigned long buffer) {
       return;
    }
 
-   unsigned long move_size = sizeof(unsigned long) + sizeof(struct archive) * dir->size;
+   unsigned long move_size = sizeof(struct archive);
 
    for (int i = dir->size - 2; i >= 0; i--) {
-      move_data(fp, dir->arch[i].offset, dir->arch[i].offset + move_size, dir->arch[i].discSize, bufferAux);
-      dir->arch[i].offset += move_size;
+      move_data(fp, dir->arch[i].offset, dir->arch[i].offset + move_size , bufferAux, dir->arch[i].discSize);
    }
 
    FILE *current_file = fopen((char *)dir->arch[dir->size - 1].name, "rb");
@@ -25,13 +24,14 @@ void insert_member(FILE *fp, struct directory *dir, unsigned long buffer) {
       return;
    }
 
-   dir->arch[dir->size - 1].offset += move_size;
+   calc_offset(dir);
 
-   fseek(fp, dir->arch[dir->size - 1].offset, SEEK_SET);
    fread(bufferAux, 1, dir->arch[dir->size - 1].discSize, current_file);
+   fseek(fp, dir->arch[dir->size - 1].offset, SEEK_SET);
    fwrite(bufferAux, 1, dir->arch[dir->size - 1].discSize, fp);
 
    fclose(current_file);
+
    free(bufferAux);
 
 }
@@ -64,29 +64,29 @@ void same_member(FILE *fp, struct directory *dir, struct archive *arch, int inde
 
    if(arch->discSize < dir->arch[index].discSize){
 
-
       unsigned long rest_size = dir->arch[index].discSize - arch->discSize;
-
-      for (long unsigned int i = index + 1; i < dir->size; i++) {
-         move_data(fp, dir->arch[i].offset, dir->arch[i].offset - rest_size, dir->arch[i].discSize, bufferAux);
-         dir->arch[i].offset -= rest_size;
-      }
 
       fseek(fp, dir->arch[index].offset, SEEK_SET);
       fwrite(bufferAux, 1, arch->discSize, fp);
 
+      for (long unsigned int i = index + 1; i < dir->size; i++) {
+         move_data(fp, dir->arch[i].offset, dir->arch[i].offset - rest_size, bufferAux, dir->arch[i].discSize);
+         dir->arch[i].offset -= rest_size;
+      }
+
       memcpy(&dir->arch[index], arch, sizeof(struct archive));
 
-      int fd = fileno(fp);
-      ftruncate(fd, ftell(fp) - rest_size);
+      calc_offset(dir);
 
+      int fd = fileno(fp);
+      ftruncate(fd, dir->arch[dir->size - 1].offset + dir->arch[dir->size - 1].discSize);
 
    } else if(arch->discSize > dir->arch[index].discSize){
 
       unsigned long move_size = arch->discSize - dir->arch[index].discSize;
 
       for (int i = dir->size - 1; i > index; i--) {
-         move_data(fp, dir->arch[i].offset, dir->arch[i].offset + move_size, dir->arch[i].discSize, bufferAux);
+         move_data(fp, dir->arch[i].offset, dir->arch[i].offset + move_size, bufferAux, dir->arch[i].discSize);
          dir->arch[i].offset += move_size;
       }
 
@@ -156,7 +156,7 @@ void compress_member(struct directory *dir, unsigned long buffer){
 
 void write_directory(FILE *fp, struct directory *dir){
 
-   fseek(fp, 0, SEEK_SET);
+   rewind(fp);
    fwrite(&dir->size, sizeof(unsigned long), 1, fp);
    fwrite(dir->arch, sizeof(struct archive), dir->size, fp);
 
@@ -259,59 +259,60 @@ void extract_directory(struct directory *dir, FILE *fp, int i){
 
 }
 
-void move_member(struct directory *dir, FILE *fp, int from_index, int to_index, unsigned char *buffer){
+void move_member(struct directory *dir, FILE *fp, int from_index, int to_index, unsigned char *buffer) {
+   if (!dir || !fp || !buffer || from_index == to_index) return;
 
    fseek(fp, 0, SEEK_END);
    unsigned long end = ftell(fp);
 
-   if(from_index > to_index){
-      for(unsigned long int i = to_index + 1; i < dir->size; i++){
-         if((int)i != from_index){
-            move_data(fp, dir->arch[i].offset, end, dir->arch[i].discSize, buffer);
+   if (from_index > to_index) {
+      for (unsigned long i = to_index + 1; i < dir->size; i++) {
+         if ((int)i != from_index) {
+            move_data(fp, dir->arch[i].offset, end, buffer, dir->arch[i].discSize);
             end += dir->arch[i].discSize;
          }
       }
 
-      move_data(fp, dir->arch[to_index].offset, dir->arch[from_index].offset + dir->arch[from_index].discSize, dir->arch[to_index].discSize, buffer);
+      move_data(fp, dir->arch[to_index].offset, dir->arch[from_index].offset + dir->arch[from_index].discSize,
+                buffer, dir->arch[to_index].discSize);
 
-      update_index(dir, from_index, to_index); 
+      update_index(dir, from_index, to_index);
       calc_offset(dir);
 
-      for(int i = dir->size - 1; i > to_index + 1; i--){
-         end -= dir->arch[i].discSize;         
-         move_data(fp, end, dir->arch[i-1].offset, dir->arch[i].discSize, buffer);
+      for (int i = dir->size - 1; i > to_index + 1; i--) {
+         end -= dir->arch[i].discSize;
+         move_data(fp, end, dir->arch[i - 1].offset, buffer, dir->arch[i].discSize);
       }
 
-   }else{
+   } else {
       for (int i = from_index + 1; i <= to_index; i++) {
-         move_data(fp, dir->arch[i].offset, end, dir->arch[i].discSize, buffer);
+         move_data(fp, dir->arch[i].offset, end, buffer, dir->arch[i].discSize);
          end += dir->arch[i].discSize;
       }
 
-      move_data(fp, dir->arch[from_index].offset, dir->arch[to_index].offset, dir->arch[from_index].discSize, buffer);
+      move_data(fp, dir->arch[from_index].offset, dir->arch[to_index].offset, buffer, dir->arch[from_index].discSize);
 
       update_index(dir, from_index, to_index);
       calc_offset(dir);
 
       for (int i = to_index; i > from_index; i--) {
-         end -= dir->arch[i].discSize;         
-         move_data(fp, end, dir->arch[i].offset, dir->arch[i].discSize, buffer);
+         end -= dir->arch[i].discSize;
+         move_data(fp, end, dir->arch[i].offset, buffer, dir->arch[i].discSize);
       }
-
    }
 
-   int fd = fileno(fp);
-   ftruncate(fd, end);
+   fflush(fp);
+   ftruncate(fileno(fp), end);
    write_directory(fp, dir);
-
 }
+
 
 void remove_member(int index, struct directory *dir, FILE *fp, unsigned char *buffer){
 
    unsigned long removed_size = dir->arch[index].discSize;
 
    for (unsigned long int i = index + 1; i < dir->size; i++) {
-      move_data(fp, dir->arch[i].offset, dir->arch[i].offset - removed_size, dir->arch[i].discSize, buffer);
+      move_data(fp, dir->arch[i].offset, dir->arch[i].offset - removed_size, buffer, dir->arch[i].discSize);
       dir->arch[i].offset -= removed_size;
    }   
 
@@ -322,14 +323,17 @@ void remove_member(int index, struct directory *dir, FILE *fp, unsigned char *bu
    unsigned long new_dir_size = sizeof(unsigned long) + sizeof(struct archive) * dir->size;
 
    for (unsigned long int i = 0; i < dir->size; i++) {
-      move_data(fp, dir->arch[i].offset, new_dir_size, dir->arch[i].discSize, buffer);
+      move_data(fp, dir->arch[i].offset, new_dir_size, buffer, dir->arch[i].discSize);
       new_dir_size += dir->arch[i].discSize;
    } 
 
    calc_offset(dir);
 
-   unsigned long final_data_end = dir->arch[dir->size - 1].offset + dir->arch[dir->size - 1].discSize;
-   unsigned long final_dir_size = sizeof(struct archive) * dir->size + sizeof(unsigned long);
-   ftruncate(fileno(fp), final_data_end + final_dir_size);
+   int fd = fileno(fp);
+   if(index == 0 && dir->size == 0){
+      ftruncate(fd, 0);
+      return;
+   }
+   ftruncate(fd, dir->arch[dir->size - 1].offset + dir->arch[dir->size - 1].discSize); 
 }
 

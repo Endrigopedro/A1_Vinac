@@ -32,7 +32,7 @@ struct directory *create_directory();
 
 struct directory *read_directory(FILE *fp);
 
-struct archive *create_arch(char *name, int udi);
+struct archive *create_arch(char *name);
 
 int add_arch(struct directory *dir, struct archive *arch);
 
@@ -52,7 +52,7 @@ void destroy_directory(struct directory *dir);
 
 unsigned long buffer_size(struct directory *dir);
 
-void move_data(FILE *fp, size_t from_offset, size_t to_offset, size_t size, unsigned char *buffer);
+void move_data(FILE *fp, size_t from_offset, size_t to_offset,unsigned char *buffer, size_t size);
 
 void update_index(struct directory*dir, int from, int to);
 

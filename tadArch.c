@@ -34,7 +34,7 @@ int add_arch(struct directory *dir, struct archive *arch){
 }
 
 
-struct archive *create_arch(char *name, int i){
+struct archive *create_arch(char *name){
 
    struct archive *arch = malloc(sizeof(struct archive));
    if (!arch) {
@@ -52,7 +52,7 @@ struct archive *create_arch(char *name, int i){
 
    arch->discSize = st.st_size;
    arch->oldSize = st.st_size;
-   arch->udi = i;
+   arch->udi = st.st_uid;
    arch->lastMod = st.st_mtime;
    arch->isCompress = 0;
    strncpy((char *)arch->name, name, sizeof(arch->name) - 1);
@@ -100,56 +100,28 @@ unsigned long buffer_size(struct directory *dir){
 }
 
 
-void move_data(FILE *fp, unsigned long from_offset, size_t to_offset, size_t size, unsigned char *buffer) {
-   if (size == 0 || from_offset == to_offset) 
-      return;
+void move_data(FILE *fp, unsigned long from, unsigned long to, unsigned char *buffer, unsigned long size) {
+   if (from == to || size == 0 || !buffer) return;
 
-   if (!buffer) {
-      fprintf(stderr, "Erro: buffer inválido.\n");
-      return;
-   }
-
-   if (to_offset > from_offset) {
-      unsigned long remaining = size;
-      while (remaining > 0) {
-         unsigned long chunk;
-         if (remaining > size) {
-            chunk = size;
-         } else {
-            chunk = remaining;
-         }
-         remaining -= chunk;
-
-         fseek(fp, from_offset + remaining, SEEK_SET);
-         fread(buffer, 1, chunk, fp);
-
-         fseek(fp, to_offset + remaining, SEEK_SET);
-         fwrite(buffer, 1, chunk, fp);
+   if (from < to) {
+      // Se o destino estiver depois, mova de trás pra frente
+      for (long i = size - 1; i >= 0; i--) {
+         fseek(fp, from + i, SEEK_SET);
+         fread(&buffer[0], 1, 1, fp);
+         fseek(fp, to + i, SEEK_SET);
+         fwrite(&buffer[0], 1, 1, fp);
+      }
+   } else {
+      // Caso contrário, mova do início
+      for (unsigned long i = 0; i < size; i++) {
+         fseek(fp, from + i, SEEK_SET);
+         fread(&buffer[0], 1, 1, fp);
+         fseek(fp, to + i, SEEK_SET);
+         fwrite(&buffer[0], 1, 1, fp);
       }
    }
-
-   else {
-      unsigned long processed = 0;
-      while (processed < size) {
-         unsigned long chunk;
-         if (size - processed > size) {
-            chunk = size;
-         } else {
-            chunk = size - processed;
-         }
-
-         fseek(fp, from_offset + processed, SEEK_SET);
-         fread(buffer, 1, chunk, fp);
-
-         fseek(fp, to_offset + processed, SEEK_SET);
-         fwrite(buffer, 1, chunk, fp);
-
-         processed += chunk;
-      }
-   }
-
+   fflush(fp);
 }
-
 void update_index(struct directory *dir, int from, int to) {
    if ((long unsigned int ) from >= dir->size) 
       return;

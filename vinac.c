@@ -16,7 +16,12 @@ int main(int argc, char **argv){
    while ((opt = getopt(argc, argv, "p:i:m:x::r:c")) != -1) {
       switch (opt) {
          case 'p':
-            printf("Inserção sem compressãso foi selecionado\n");
+            for (int i = optind; i < argc; i++) {
+               if (access(argv[i], F_OK) == -1) {
+                  fprintf(stderr, "Erro: o arquivo '%s' não existe.\n", argv[i]);
+                  exit(1);
+               }
+            }
             if(!fp) {
                fp = fopen(argv[optind - 1], "wb+");
                if (!fp) {
@@ -29,9 +34,10 @@ int main(int argc, char **argv){
                dir = read_directory(fp);
             }
             for(int i = optind; i < argc; i++){
-               struct archive *arch = create_arch(argv[i], dir->size); 
+
+               struct archive *arch = create_arch(argv[i]); 
                int j = add_arch(dir, arch);
-               calc_offset(dir);
+               printf("%ld\n", dir->size);
                if(j == -1){
                   buffer = buffer_size(dir);
                   insert_member(fp, dir, buffer);
@@ -47,6 +53,12 @@ int main(int argc, char **argv){
 
          case 'i':
             printf("Inserção com compressãso foi selecionado\n");
+            for (int i = optind; i < argc; i++) {
+               if (access(argv[i], F_OK) == -1) {
+                  fprintf(stderr, "Erro: o arquivo '%s' não existe.\n", argv[i]);
+                  exit(1);
+               }
+            }
             if(!fp) {
                fp = fopen(argv[optind - 1], "wb+");
                if (!fp) {
@@ -59,8 +71,10 @@ int main(int argc, char **argv){
                dir = read_directory(fp);
             }
             for(int i = optind; i < argc; i++){
-               struct archive *arch = create_arch(argv[i], dir->size); 
+
+               struct archive *arch = create_arch(argv[i]); 
                int j = add_arch(dir, arch);
+               printf("%ld\n", dir->size);
                if(j == -1){
                   buffer = buffer_size(dir);
                   compress_member(dir, buffer);
@@ -76,10 +90,9 @@ int main(int argc, char **argv){
             write_directory(fp, dir);
             break;
 
+
+
          case 'm':
-            printf("Movimentando membro %s para nova posição\n", optarg);
-
-
             if (!fp) {
                fprintf(stderr, "Arquivo não encontrado.\n");
                break;
@@ -116,6 +129,7 @@ int main(int argc, char **argv){
 
             break; 
          case 'x':
+
             if(optind < argc - 1)
                has_members = 1;
             else
@@ -142,6 +156,7 @@ int main(int argc, char **argv){
             }
             break;
          case 'r':
+
             printf("Remoção dos seguintes membros\n");
             dir = read_directory(fp);
             buffer = buffer_size(dir);
@@ -159,6 +174,7 @@ int main(int argc, char **argv){
             break; 
 
          case 'c':
+
             printf("Archive possui os seguintes conteúdos\n");
             if(fp){   
                dir = read_directory(fp);
@@ -170,7 +186,7 @@ int main(int argc, char **argv){
             break;
 
          default:
-            perror("%Argumentos: -a [Valor Op.] -b [Valor Ob.]\n"); //pensar numa mensagem legal de erro
+            perror("Escolha uma opção valida\n");
             return 1;
       }
    }
