@@ -107,7 +107,7 @@ void same_member(FILE *fp, struct directory *dir, struct archive *arch, int inde
    free(bufferAux);
 }
 
-void compress_member(struct directory *dir, unsigned long buffer){
+void compress_member(struct directory *dir, unsigned long buffer, int index){
 
    if (dir->size == 0) 
       return;
@@ -123,7 +123,7 @@ void compress_member(struct directory *dir, unsigned long buffer){
    } 
 
 
-   FILE *current_file = fopen((char *)dir->arch[dir->size - 1].name, "rb");
+   FILE *current_file = fopen((char *)dir->arch[index].name, "rb");
    if (!current_file) {
       perror("Erro ao abrir arquivo para compressão");
       free(bufferAux);
@@ -131,11 +131,11 @@ void compress_member(struct directory *dir, unsigned long buffer){
       return;
    }
 
-   unsigned long uncompress = fread(bufferAux, 1, dir->arch[dir->size - 1].discSize, current_file);
+   unsigned long uncompress = fread(bufferAux, 1, dir->arch[index].discSize, current_file);
 
    fclose(current_file);
 
-   unsigned long compress = LZ_Compress(bufferAux, bufferCompress, dir->arch[dir->size- 1].discSize);
+   unsigned long compress = LZ_Compress(bufferAux, bufferCompress, dir->arch[index].discSize);
 
    if(compress > uncompress){
       printf("Tamanho comprimido é maior\n");
@@ -144,9 +144,9 @@ void compress_member(struct directory *dir, unsigned long buffer){
       return; 
    }
 
-   dir->arch[dir->size - 1].discSize = compress;
+   dir->arch[index].discSize = compress;
 
-   dir->arch[dir->size - 1].isCompress = 1;
+   dir->arch[index].isCompress = 1;
 
    free(bufferAux);
    free(bufferCompress);
@@ -244,6 +244,7 @@ void extract_directory(struct directory *dir, FILE *fp, int i){
          fclose(current_file);
          return;
       }
+
 
       fread(compress, 1, dir->arch[i].discSize, fp);
 

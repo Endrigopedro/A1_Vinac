@@ -16,12 +16,6 @@ int main(int argc, char **argv){
    while ((opt = getopt(argc, argv, "p:i:m:x::r:c")) != -1) {
       switch (opt) {
          case 'p':
-            for (int i = optind; i < argc; i++) {
-               if (access(argv[i], F_OK) == -1) {
-                  fprintf(stderr, "Erro: o arquivo '%s' não existe.\n", argv[i]);
-                  exit(1);
-               }
-            }
             if(!fp) {
                fp = fopen(argv[optind - 1], "wb+");
                if (!fp) {
@@ -37,7 +31,6 @@ int main(int argc, char **argv){
 
                struct archive *arch = create_arch(argv[i]); 
                int j = add_arch(dir, arch);
-               printf("%ld\n", dir->size);
                if(j == -1){
                   buffer = buffer_size(dir);
                   insert_member(fp, dir, buffer);
@@ -74,14 +67,13 @@ int main(int argc, char **argv){
 
                struct archive *arch = create_arch(argv[i]); 
                int j = add_arch(dir, arch);
-               printf("%ld\n", dir->size);
                if(j == -1){
                   buffer = buffer_size(dir);
-                  compress_member(dir, buffer);
+                  compress_member(dir, buffer, dir->size - 1);
                   insert_member(fp, dir, buffer);
                }else {
                   buffer = buffer_size(dir);
-                  compress_member(dir, buffer);
+                  compress_member(dir, buffer, j);
                   same_member(fp, dir, arch, j, buffer);
                }
                free(arch);

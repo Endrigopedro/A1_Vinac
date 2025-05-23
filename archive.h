@@ -13,7 +13,7 @@ void insert_member(FILE *fp, struct directory *dir, unsigned long buffer);
 
 void same_member(FILE *fp, struct directory *dir, struct archive *arch, int index, unsigned long buffer);
 
-void compress_member(struct directory *dir, unsigned long buffer);
+void compress_member(struct directory *dir, unsigned long buffer, int index);
 
 void write_directory(FILE *fp, struct directory *dir);
 
