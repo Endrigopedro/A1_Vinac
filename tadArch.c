@@ -92,8 +92,8 @@ unsigned long buffer_size(struct directory *dir){
    unsigned long buffer = 0;
 
    for(long unsigned int i = 0; i < dir->size; i++){
-      if (dir->arch[i].discSize > (off_t )buffer)
-         buffer = dir->arch[i].discSize;
+      if (dir->arch[i].oldSize > (off_t )buffer)
+         buffer = dir->arch[i].oldSize;
    }
 
    return buffer;
@@ -103,23 +103,10 @@ unsigned long buffer_size(struct directory *dir){
 void move_data(FILE *fp, unsigned long from, unsigned long to, unsigned char *buffer, unsigned long size) {
    if (from == to || size == 0 || !buffer) return;
 
-   if (from < to) {
-      // Se o destino estiver depois, mova de trás pra frente
-      for (long i = size - 1; i >= 0; i--) {
-         fseek(fp, from + i, SEEK_SET);
-         fread(&buffer[0], 1, 1, fp);
-         fseek(fp, to + i, SEEK_SET);
-         fwrite(&buffer[0], 1, 1, fp);
-      }
-   } else {
-      // Caso contrário, mova do início
-      for (unsigned long i = 0; i < size; i++) {
-         fseek(fp, from + i, SEEK_SET);
-         fread(&buffer[0], 1, 1, fp);
-         fseek(fp, to + i, SEEK_SET);
-         fwrite(&buffer[0], 1, 1, fp);
-      }
-   }
+   fseek(fp, from, SEEK_SET);
+   fread(buffer, 1, size, fp);
+   fseek(fp, to, SEEK_SET);
+   fwrite(buffer, 1, size, fp);
    fflush(fp);
 }
 void update_index(struct directory *dir, int from, int to) {

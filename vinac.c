@@ -72,6 +72,7 @@ int main(int argc, char **argv){
                   compress_member(dir, buffer, dir->size - 1);
                   insert_member(fp, dir, buffer);
                }else {
+
                   buffer = buffer_size(dir);
                   compress_member(dir, buffer, j);
                   same_member(fp, dir, arch, j, buffer);
@@ -87,7 +88,7 @@ int main(int argc, char **argv){
          case 'm':
             if (!fp) {
                fprintf(stderr, "Arquivo não encontrado.\n");
-               break;
+               exit(1);
             }
 
             dir = read_directory(fp);
@@ -105,7 +106,7 @@ int main(int argc, char **argv){
                if (strncmp((char *)dir->arch[i].name, argv[optind], 1024) == 0)
                   from_index = i;
 
-               if (argc > 4 && strcmp(argv[optind], "NULL") != 0 && strncmp((char *)dir->arch[i].name, argv[optind], 1024) == 0)
+               if (argc > 4 && strcmp(argv[optind], "NULL") != 0 && strncmp((char *)dir->arch[i].name, argv[optind + 1], 1024) == 0)
                   to_index = i;
             }
 
@@ -129,7 +130,6 @@ int main(int argc, char **argv){
 
             dir = read_directory(fp);
             calc_offset(dir);
-
             if (!has_members) {
                printf("Extração\n");
                for (unsigned long i = 0; i < dir->size; i++) {
