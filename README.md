@@ -74,10 +74,11 @@ Também existem funções auxiliares para fazer as manipulações no vetor e no 
 - Alocação dinâmica de arquivos e ajuste do vetor `arch` durante inserções.
 - Uso das funções que manipulam arquivos.
 - Dificuldade em como manipular o binário de forma correta.
+- Dificuldades no uso da biblioteca lz.
 
 ---
 
 ## 🐞 Bugs conhecidos:
 
-- Todos os meus bugs derivam de problemas no `insere`, que sempre escreve o conteúdo em lugares aleatórios do `.vc`. Acredito que isso possa ter relação com um cálculo errado de offset durante o `insere`, mas não consegui encontrar o ponto exato que gera esse problema.
+- Nos casos de teste do script.py não foram encontrados bugs. 
 
