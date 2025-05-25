@@ -4,13 +4,7 @@
 #include <unistd.h>
 
 
-void insert_member(FILE *fp, struct directory *dir, unsigned long buffer) {
-
-   unsigned char *bufferAux = malloc(buffer);
-   if (!bufferAux) {
-      perror("Erro ao alocar buffer");
-      return;
-   }
+void insert_member(FILE *fp, struct directory *dir, unsigned char *bufferAux) {
 
    unsigned long move_size = sizeof(struct archive);
 
@@ -25,10 +19,11 @@ void insert_member(FILE *fp, struct directory *dir, unsigned long buffer) {
       return;
    }
 
+
    calc_offset(dir);
 
-   fread(bufferAux, 1, dir->arch[dir->size - 1].discSize, current_file);
    fseek(fp, dir->arch[dir->size - 1].offset, SEEK_SET);
+   fread(bufferAux, 1, dir->arch[dir->size - 1].discSize, current_file);
    fwrite(bufferAux, 1, dir->arch[dir->size - 1].discSize, fp);
 
    ftruncate(fileno(fp), dir->arch[dir->size - 1].offset + dir->arch[dir->size - 1].discSize);
@@ -39,16 +34,8 @@ void insert_member(FILE *fp, struct directory *dir, unsigned long buffer) {
 
 }
 
-void same_member(FILE *fp, struct directory *dir, struct archive *arch, int index, unsigned long buffer){
+void same_member(FILE *fp, struct directory *dir, struct archive *arch, int index, unsigned char *bufferAux){ 
 
-   if ((off_t)buffer < arch->discSize)
-      buffer = arch->discSize;
-
-   unsigned char *bufferAux = malloc(buffer);
-   if (!bufferAux) {
-      perror("Erro ao alocar buffer");
-      return;
-   }
 
    FILE *current_file = fopen((char *)arch->name, "rb");
    if (!current_file) {
@@ -79,9 +66,6 @@ void same_member(FILE *fp, struct directory *dir, struct archive *arch, int inde
       }
 
       memcpy(&dir->arch[index], arch, sizeof(struct archive));
-
-      int fd = fileno(fp);
-      ftruncate(fd, dir->arch[dir->size - 1].offset + dir->arch[dir->size - 1].discSize);
 
    } else if(arch->discSize > dir->arch[index].discSize){
 
@@ -132,17 +116,15 @@ void same_member(FILE *fp, struct directory *dir, struct archive *arch, int inde
    free(bufferAux);
 }
 
-void compress_member(struct directory *dir, unsigned long buffer, int index){
+void compress_member(FILE *fp, struct directory *dir, unsigned long buffer, unsigned char *bufferAux, int index){
 
    if (dir->size == 0) 
       return;
 
-   unsigned char *bufferAux = malloc(buffer);
    unsigned char *bufferCompress = malloc(buffer);
 
-   if (!bufferAux || !bufferCompress) {
+   if (!bufferCompress) {
       perror("Erro ao alocar buffers de compressão");
-      free(bufferAux);
       free(bufferCompress);
       return;
    } 
@@ -158,24 +140,120 @@ void compress_member(struct directory *dir, unsigned long buffer, int index){
 
    unsigned long uncompress = fread(bufferAux, 1, dir->arch[index].oldSize, current_file);
 
-   fclose(current_file);
-
    unsigned long compress = LZ_Compress(bufferAux, bufferCompress, uncompress);
 
    if(compress > uncompress){
       printf("Tamanho comprimido é maior\n");
-      free(bufferAux);
       free(bufferCompress);
-      return; 
+      insert_member(fp, dir, bufferAux); 
    }
 
    dir->arch[index].discSize = compress;
 
    dir->arch[index].isCompress = 1;
 
+
+   unsigned long move_size = sizeof(struct archive);
+
+   for (int i = dir->size - 2; i >= 0; i--) {
+      move_data(fp, dir->arch[i].offset, dir->arch[i].offset + move_size , bufferAux, dir->arch[i].discSize);
+   }
+
+   calc_offset(dir);
+
+   fseek(fp, dir->arch[dir->size - 1].offset, SEEK_SET);
+   fwrite(bufferCompress, 1, dir->arch[dir->size - 1].discSize, fp);
+
+   ftruncate(fileno(fp), dir->arch[dir->size - 1].offset + dir->arch[dir->size - 1].discSize);
+
+   fclose(current_file);
+
    free(bufferAux);
    free(bufferCompress);
 
+}
+
+void same_compress(FILE *fp, struct directory *dir, struct archive *arch, int index, unsigned char *bufferAux, unsigned long buffer){ 
+
+
+   if (dir->size == 0) 
+      return;
+
+   unsigned char *bufferCompress = malloc(buffer);
+
+   if (!bufferCompress) {
+      perror("Erro ao alocar buffers de compressão");
+      return;
+   } 
+
+
+   FILE *current_file = fopen((char *)dir->arch[index].name, "rb");
+   if (!current_file) {
+      perror("Erro ao abrir arquivo para compressão");
+      free(bufferAux);
+      free(bufferCompress);
+      return;
+   }
+
+   unsigned long uncompress = fread(bufferAux, 1, dir->arch[index].oldSize, current_file);
+
+   unsigned long compress = LZ_Compress(bufferAux, bufferCompress, uncompress);
+
+   if(compress > uncompress){
+      printf("Tamanho comprimido é maior\n");
+      free(bufferCompress);
+      same_member(fp, dir, arch, index, bufferAux);
+      return;
+   }
+
+   dir->arch[index].discSize = compress;
+
+   dir->arch[index].isCompress = 1;
+
+   if(arch->discSize < dir->arch[index].discSize){
+      unsigned long rest_size = dir->arch[index].discSize - arch->discSize;
+
+      fseek(fp, dir->arch[index].offset, SEEK_SET);
+      fwrite(bufferCompress, 1, compress, fp);
+
+      for (long unsigned int i = index + 1; i < dir->size; i++) {
+         move_data(fp, dir->arch[i].offset, dir->arch[i].offset - rest_size, bufferAux, dir->arch[i].discSize);
+         dir->arch[i].offset -= rest_size;
+      }
+
+      memcpy(&dir->arch[index], arch, sizeof(struct archive));
+
+   } else if(arch->discSize > dir->arch[index].discSize){
+
+      unsigned long move_size = arch->discSize - dir->arch[index].discSize;
+
+      for (int i = dir->size - 1; i > index; i--) {
+         move_data(fp, dir->arch[i].offset, dir->arch[i].offset + move_size, bufferAux, dir->arch[i].discSize);
+         dir->arch[i].offset += move_size;
+      }
+
+      fseek(fp, dir->arch[index].offset, SEEK_SET);
+      fwrite(bufferCompress, 1, compress, fp);
+      printf("writing at offset %lu\n", dir->arch[index].offset);
+
+      printf("first 5 bytes: %02x %02x %02x %02x %02x\n", bufferAux[0], bufferAux[1], bufferAux[2], bufferAux[3], bufferAux[4]);
+
+      memcpy(&dir->arch[index], arch, sizeof(struct archive));
+
+
+   } else{
+
+      fseek(fp, dir->arch[index].offset, SEEK_SET);
+      fwrite(bufferCompress, 1, compress, fp);
+      memcpy(&dir->arch[index], arch, sizeof(struct archive));
+   }
+
+
+   ftruncate(fileno(fp), dir->arch[dir->size - 1].offset + dir->arch[dir->size - 1].discSize);
+
+   fclose(current_file);
+   free(bufferAux);
+   free(bufferCompress);
 }
 
 

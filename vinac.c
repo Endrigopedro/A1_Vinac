@@ -33,10 +33,23 @@ int main(int argc, char **argv){
                int j = add_arch(dir, arch);
                if(j == -1){
                   buffer = buffer_size(dir);
-                  insert_member(fp, dir, buffer);
+                  unsigned char *bufferAux = malloc(buffer);
+                  if (!bufferAux) {
+                     perror("Erro ao alocar buffer");
+                     exit(0);
+                  }
+                  insert_member(fp, dir, bufferAux);
                }else {
                   buffer = buffer_size(dir);
-                  same_member(fp, dir, arch, j, buffer);
+                  if ((off_t)buffer < arch->discSize)
+                     buffer = arch->discSize;
+                  unsigned char *bufferAux = malloc(buffer);
+                  if (!bufferAux) {
+                     perror("Erro ao alocar buffer");
+                     exit(0);
+                  }
+
+                  same_member(fp, dir, arch, j, bufferAux);
                }
                free(arch);
             }
@@ -69,13 +82,22 @@ int main(int argc, char **argv){
                int j = add_arch(dir, arch);
                if(j == -1){
                   buffer = buffer_size(dir);
-                  compress_member(dir, buffer, dir->size - 1);
-                  insert_member(fp, dir, buffer);
+                  unsigned char *bufferAux = malloc(buffer);
+                  if (!bufferAux) {
+                     perror("Erro ao alocar buffer");
+                     exit(0);
+                  }
+                  compress_member(fp, dir, buffer, bufferAux, dir->size - 1);
                }else {
-
                   buffer = buffer_size(dir);
-                  compress_member(dir, buffer, j);
-                  same_member(fp, dir, arch, j, buffer);
+                  if ((off_t)buffer < arch->discSize)
+                     buffer = arch->discSize;
+                  unsigned char *bufferAux = malloc(buffer);
+                  if (!bufferAux) {
+                     perror("Erro ao alocar buffer");
+                     exit(0);
+                  }
+                  same_compress(fp, dir, arch, j, bufferAux, buffer);
                }
                free(arch);
             }
