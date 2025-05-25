@@ -105,8 +105,6 @@ int main(int argc, char **argv){
             write_directory(fp, dir);
             break;
 
-
-
          case 'm':
             if (!fp) {
                fprintf(stderr, "Arquivo não encontrado.\n");

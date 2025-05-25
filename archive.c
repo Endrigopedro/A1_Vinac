@@ -65,8 +65,6 @@ void same_member(FILE *fp, struct directory *dir, struct archive *arch, int inde
          dir->arch[i].offset -= rest_size;
       }
 
-      memcpy(&dir->arch[index], arch, sizeof(struct archive));
-
    } else if(arch->discSize > dir->arch[index].discSize){
 
       unsigned long move_size = arch->discSize - dir->arch[index].discSize;
@@ -90,9 +88,6 @@ void same_member(FILE *fp, struct directory *dir, struct archive *arch, int inde
 
       printf("first 5 bytes: %02x %02x %02x %02x %02x\n", bufferAux[0], bufferAux[1], bufferAux[2], bufferAux[3], bufferAux[4]);
 
-      memcpy(&dir->arch[index], arch, sizeof(struct archive));
-
-
    } else{
 
       unsigned long read_size = fread(bufferAux, 1, arch->discSize, current_file);
@@ -106,10 +101,9 @@ void same_member(FILE *fp, struct directory *dir, struct archive *arch, int inde
 
       fseek(fp, dir->arch[index].offset, SEEK_SET);
       fwrite(bufferAux, 1, arch->discSize, fp);
-      memcpy(&dir->arch[index], arch, sizeof(struct archive));
    }
 
-
+   memcpy(&dir->arch[index], arch, sizeof(struct archive));
    ftruncate(fileno(fp), dir->arch[dir->size - 1].offset + dir->arch[dir->size - 1].discSize);
 
    fclose(current_file);
@@ -125,8 +119,7 @@ void compress_member(FILE *fp, struct directory *dir, unsigned long buffer, unsi
 
    if (!bufferCompress) {
       perror("Erro ao alocar buffers de compressão");
-      free(bufferCompress);
-      return;
+         return;
    } 
 
 
@@ -138,14 +131,15 @@ void compress_member(FILE *fp, struct directory *dir, unsigned long buffer, unsi
       return;
    }
 
-   unsigned long uncompress = fread(bufferAux, 1, dir->arch[index].oldSize, current_file);
+   unsigned long uncompress = fread(bufferAux, 1, dir->arch[index].discSize, current_file);
 
    unsigned long compress = LZ_Compress(bufferAux, bufferCompress, uncompress);
 
    if(compress > uncompress){
       printf("Tamanho comprimido é maior\n");
       free(bufferCompress);
-      insert_member(fp, dir, bufferAux); 
+      insert_member(fp, dir, bufferAux);
+      return;
    }
 
    dir->arch[index].discSize = compress;
@@ -187,7 +181,7 @@ void same_compress(FILE *fp, struct directory *dir, struct archive *arch, int in
    } 
 
 
-   FILE *current_file = fopen((char *)dir->arch[index].name, "rb");
+   FILE *current_file = fopen((char *)arch->name, "rb");
    if (!current_file) {
       perror("Erro ao abrir arquivo para compressão");
       free(bufferAux);
@@ -195,20 +189,20 @@ void same_compress(FILE *fp, struct directory *dir, struct archive *arch, int in
       return;
    }
 
-   unsigned long uncompress = fread(bufferAux, 1, dir->arch[index].oldSize, current_file);
+   unsigned long uncompress = fread(bufferAux, 1, arch->oldSize, current_file);
 
    unsigned long compress = LZ_Compress(bufferAux, bufferCompress, uncompress);
 
    if(compress > uncompress){
       printf("Tamanho comprimido é maior\n");
-      free(bufferCompress);
+         free(bufferCompress);
       same_member(fp, dir, arch, index, bufferAux);
       return;
    }
 
-   dir->arch[index].discSize = compress;
+   arch->discSize = compress;
 
-   dir->arch[index].isCompress = 1;
+   arch->isCompress = 1;
 
    if(arch->discSize < dir->arch[index].discSize){
       unsigned long rest_size = dir->arch[index].discSize - arch->discSize;
@@ -221,7 +215,6 @@ void same_compress(FILE *fp, struct directory *dir, struct archive *arch, int in
          dir->arch[i].offset -= rest_size;
       }
 
-      memcpy(&dir->arch[index], arch, sizeof(struct archive));
 
    } else if(arch->discSize > dir->arch[index].discSize){
 
@@ -238,17 +231,15 @@ void same_compress(FILE *fp, struct directory *dir, struct archive *arch, int in
 
       printf("first 5 bytes: %02x %02x %02x %02x %02x\n", bufferAux[0], bufferAux[1], bufferAux[2], bufferAux[3], bufferAux[4]);
 
-      memcpy(&dir->arch[index], arch, sizeof(struct archive));
 
 
    } else{
 
       fseek(fp, dir->arch[index].offset, SEEK_SET);
       fwrite(bufferCompress, 1, compress, fp);
-      memcpy(&dir->arch[index], arch, sizeof(struct archive));
    }
 
-
+   memcpy(&dir->arch[index], arch, sizeof(struct archive));
    ftruncate(fileno(fp), dir->arch[dir->size - 1].offset + dir->arch[dir->size - 1].discSize);
 
    fclose(current_file);
@@ -352,7 +343,7 @@ void extract_directory(struct directory *dir, FILE *fp, int i){
 
       fread(compress, 1, dir->arch[i].discSize, fp);
 
-      LZ_Uncompress(compress, auxBuffer, dir->arch[i].oldSize);
+      LZ_Uncompress(compress, auxBuffer, dir->arch[i].discSize);
 
       fwrite(auxBuffer, 1, dir->arch[i].oldSize, current_file);
       free(compress);
